@@ -6,7 +6,7 @@
   "imageUrl": "https://finnyshare.space/logo.svg",
   "owner": "finnyshare",
   "category": "General",
-  "version": "0.1.0.0",
+  "version": "0.2.0.0",
   "targetAbi": "10.11.0.0",
   "status": "Active",
   "autoUpdate": false

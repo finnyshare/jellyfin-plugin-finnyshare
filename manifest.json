@@ -9,6 +9,14 @@
     "imageUrl": "https://finnyshare.space/logo.svg",
     "versions": [
       {
+        "version": "0.2.0.0",
+        "changelog": "Fixes playback stalling in native apps such as Swiftfin. One viewer who pauses or buffers no longer stalls every other viewer of the same server.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/finnyshare/jellyfin-plugin-finnyshare/releases/download/v0.02-beta/finnyshare_0.02-beta.zip",
+        "checksum": "F2EA5F1B975188990FDF6A26F6B12939",
+        "timestamp": "2026-09-06T21:28:57"
+      },
+      {
         "version": "0.1.0.0",
         "changelog": "First public beta.",
         "targetAbi": "10.11.0.0",
