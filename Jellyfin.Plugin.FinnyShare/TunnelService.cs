@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
 using System.Net.WebSockets;
@@ -42,6 +43,12 @@ public sealed class TunnelService : BackgroundService
         // Per-stream cancellation. Without this a viewer who seeks or closes the player leaves
         // us pumping an entire media file into a stream nobody is reading.
         public CancellationTokenSource Cts { get; } = CancellationTokenSource.CreateLinkedTokenSource(parent);
+
+        // How much of this response the relay has room for. It grants a window when the
+        // stream opens and replenishes it as the viewer actually consumes bytes, which is
+        // what keeps one slow player from filling the socket and stalling every other
+        // viewer behind the tunnel's single send lock.
+        public StreamCredit Credit { get; } = new();
 
         public void Dispose()
         {
@@ -177,6 +184,10 @@ public sealed class TunnelService : BackgroundService
     private readonly SemaphoreSlim _sendLock = new(1, 1);
     private ClientWebSocket? _ws;
 
+    // Whether this relay confirmed credit flow control at the handshake. Written once per
+    // connection before the receive loop starts, read by every stream after.
+    private volatile bool _creditAware;
+
     public TunnelService(ILogger<TunnelService> log, IHttpClientFactory http, IServerApplicationHost host)
     {
         _log = log;
@@ -232,6 +243,12 @@ public sealed class TunnelService : BackgroundService
                 using var ws = new ClientWebSocket();
                 ws.Options.SetRequestHeader("Authorization", "Bearer " + token);
 
+                // Ask for flow control, and collect the response so we can see whether this
+                // relay confirmed it. Waiting for credit from a relay that never sends any
+                // would hang every response on its first byte.
+                ws.Options.SetRequestHeader(TunnelFlow.Header, TunnelFlow.Credit);
+                ws.Options.CollectHttpResponseDetails = true;
+
                 // So the dashboard can label this server the way its owner named it, rather
                 // than echoing back the hostname we generated. Sanitised: it is owner-supplied
                 // text going onto a header line.
@@ -273,6 +290,7 @@ public sealed class TunnelService : BackgroundService
 
                 _rejections = 0;
                 _ws = ws;
+                _creditAware = TunnelFlow.IsConfirmed(ws.HttpResponseHeaders);
                 // Naming the local endpoint makes the commonest support question answerable
                 // from the log alone: a server on a non-default port shows it here.
                 _log.LogInformation(
@@ -597,6 +615,18 @@ public sealed class TunnelService : BackgroundService
                 s.Body.Writer.TryComplete();
                 break;
 
+            case TunnelFrame.Credit:
+                // Never throws and never blocks. Credit is the frame that unblocks senders,
+                // so a peer must always be able to deliver it - flow-controlling it, or
+                // queueing it behind a full body queue, is how both sides deadlock.
+                if (payload.Length == 4)
+                {
+                    s.Credit.Grant((int)Math.Min(
+                        BinaryPrimitives.ReadUInt32BigEndian(payload.Span), int.MaxValue));
+                }
+
+                break;
+
             case TunnelFrame.Reset:
                 // Viewer is gone. Cancelling makes the read loop throw, so we stop pulling
                 // from Jellyfin instead of pushing the rest of the file into the void.
@@ -737,6 +767,14 @@ public sealed class TunnelService : BackgroundService
             int n;
             while ((n = await stream.ReadAsync(chunk, ct).ConfigureAwait(false)) > 0)
             {
+                // Before the send lock, never after. Waiting while holding it would block
+                // every other stream on this tunnel on this one viewer's reading speed,
+                // which is the stall flow control exists to remove.
+                if (_creditAware && !await state.Credit.WaitAsync(n, ct).ConfigureAwait(false))
+                {
+                    return;
+                }
+
                 await SendAsync(TunnelFrame.Data, streamId, chunk.AsMemory(0, n), ct).ConfigureAwait(false);
             }
         }

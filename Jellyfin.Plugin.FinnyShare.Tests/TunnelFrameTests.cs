@@ -12,7 +12,7 @@ namespace Jellyfin.Plugin.FinnyShare.Tests;
 /// </summary>
 public class TunnelFrameTests
 {
-    private sealed record Vector(string Name, byte Type, uint StreamId, string PayloadUtf8, string Bytes);
+    private sealed record Vector(string Name, byte Type, uint StreamId, byte[] Payload, string Bytes);
 
     private static (Dictionary<string, byte> Types, List<Vector> Vectors) LoadVectors()
     {
@@ -28,11 +28,17 @@ public class TunnelFrameTests
         var vectors = new List<Vector>();
         foreach (var v in root.GetProperty("vectors").EnumerateArray())
         {
+            // Credit carries a big-endian uint32, so a vector may state its payload as hex
+            // instead of as text.
+            var payload = v.TryGetProperty("payloadHex", out var hex)
+                ? Convert.FromHexString(hex.GetString()!)
+                : Encoding.UTF8.GetBytes(v.GetProperty("payloadUtf8").GetString()!);
+
             vectors.Add(new Vector(
                 v.GetProperty("name").GetString()!,
                 v.GetProperty("type").GetByte(),
                 v.GetProperty("streamId").GetUInt32(),
-                v.GetProperty("payloadUtf8").GetString()!,
+                payload,
                 v.GetProperty("bytes").GetString()!));
         }
 
@@ -53,6 +59,7 @@ public class TunnelFrameTests
         Assert.Equal(TunnelFrame.WsText, types["WS_TEXT"]);
         Assert.Equal(TunnelFrame.WsBinary, types["WS_BINARY"]);
         Assert.Equal(TunnelFrame.Reset, types["RESET"]);
+        Assert.Equal(TunnelFrame.Credit, types["CREDIT"]);
     }
 
     [Fact]
@@ -62,7 +69,7 @@ public class TunnelFrameTests
 
         foreach (var v in vectors)
         {
-            var encoded = TunnelFrame.Encode(v.Type, v.StreamId, Encoding.UTF8.GetBytes(v.PayloadUtf8));
+            var encoded = TunnelFrame.Encode(v.Type, v.StreamId, v.Payload);
             Assert.Equal(v.Bytes, Convert.ToHexString(encoded).ToLowerInvariant());
         }
     }
@@ -79,7 +86,7 @@ public class TunnelFrameTests
             Assert.True(TunnelFrame.TryDecode(raw, out var frame), v.Name);
             Assert.Equal(v.Type, frame.Type);
             Assert.Equal(v.StreamId, frame.StreamId);
-            Assert.Equal(v.PayloadUtf8, Encoding.UTF8.GetString(frame.Payload.Span));
+            Assert.Equal(v.Payload, frame.Payload.ToArray());
         }
     }
 

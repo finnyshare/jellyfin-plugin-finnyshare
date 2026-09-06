@@ -1,5 +1,5 @@
 {
-  "_comment": "Cross-language wire contract for the FinnyShare tunnel. Read by BOTH the Go relay and the C# plugin test suites. Frame layout: [type:1][streamId:4 big-endian][payload]. Bytes are hex. Changing any vector is a breaking protocol change on both sides.",
+  "_comment": "Cross-language wire contract for the FinnyShare tunnel. Read by BOTH the Go relay and the C# plugin test suites. Frame layout: [type:1][streamId:4 big-endian][payload]. Bytes are hex. A vector's payload is payloadUtf8 unless it carries payloadHex, which binary payloads use. Changing any vector is a breaking protocol change on both sides.",
   "frameTypes": {
     "REQUEST": 1,
     "RESPONSE": 2,
@@ -7,7 +7,8 @@
     "END": 4,
     "WS_TEXT": 5,
     "WS_BINARY": 6,
-    "RESET": 7
+    "RESET": 7,
+    "CREDIT": 8
   },
   "vectors": [
     {
@@ -51,6 +52,13 @@
       "streamId": 258,
       "payloadUtf8": "{}",
       "bytes": "05000001027b7d"
+    },
+    {
+      "name": "credit grant is a big-endian uint32, not utf-8",
+      "type": 8,
+      "streamId": 7,
+      "payloadHex": "00200000",
+      "bytes": "080000000700200000"
     }
   ]
 }

@@ -33,6 +33,12 @@ public static class TunnelFrame
     /// <summary>Either direction: peer abandoned the stream, stop producing immediately.</summary>
     public const byte Reset = 7;
 
+    /// <summary>
+    /// Relay to plugin: 4-byte big-endian count of further body bytes this stream may send.
+    /// Stream 0 is the connection-level window. Only DATA is governed by it.
+    /// </summary>
+    public const byte Credit = 8;
+
     /// <summary>Fixed size of the frame header.</summary>
     public const int HeaderLength = 5;
 
