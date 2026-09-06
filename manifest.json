@@ -2,7 +2,7 @@
   {
     "guid": "8b7a2f1e-3c4d-4a5b-9e6f-1d2c3b4a5e6f",
     "name": "FinnyShare",
-    "description": "Get a public HTTPS address for this server, even behind CGNAT or a router you cannot configure. The plugin keeps one outbound tunnel to a FinnyShare relay and proxies remote requests to Jellyfin; your logins and permissions are unchanged. BETA: capped at 10 Mbps per server (shared by all remote viewers, unlimited viewers), single relay, no uptime guarantee.",
+    "description": "Reach this server from anywhere. No port forwarding, no static IP, no router access, and it works behind CGNAT and on mobile broadband.\n\nYour Jellyfin opens one outbound connection to a FinnyShare relay. Your users, passwords and permissions are unchanged.\n\nBeta: 10 Mbps per server, shared by everyone watching it. No limit on viewers. One relay, and no uptime promise yet.",
     "overview": "Remote access for Jellyfin behind CGNAT - no port forwarding, no static IP",
     "owner": "finnyshare",
     "category": "General",
@@ -13,8 +13,8 @@
         "changelog": "First public beta.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/finnyshare/jellyfin-plugin-finnyshare/releases/download/v0.01-beta/finnyshare_0.01-beta.zip",
-        "checksum": "6A32FF82639A47E80C4B646549A8AEB2",
-        "timestamp": "2026-09-06T19:54:07"
+        "checksum": "78C122180775AFC7468FAC92A1AE3514",
+        "timestamp": "2026-09-06T20:04:31"
       }
     ]
   }

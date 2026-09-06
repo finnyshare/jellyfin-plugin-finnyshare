@@ -27,7 +27,8 @@ In Jellyfin, go to **Dashboard → Plugins → Repositories**, press **+**, and 
 | Repository Name | `FinnyShare` |
 | Repository URL | `https://finnyshare.space/plugin/manifest.json` |
 
-Then **Catalog → General → FinnyShare → Install**, and restart Jellyfin.
+Then, still under **Plugins**, switch the filter from **Installed** to **Available**,
+pick **FinnyShare**, and install it. Restart Jellyfin when it asks.
 
 Open **Dashboard → Plugins → FinnyShare**. Your address is already there:
 
