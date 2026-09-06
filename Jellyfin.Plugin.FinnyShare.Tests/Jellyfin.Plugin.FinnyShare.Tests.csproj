@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Jellyfin.Plugin.FinnyShare/Jellyfin.Plugin.FinnyShare.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The wire contract, versioned alongside the code that speaks it. The private relay
+         vendors a copy of this file and its CI checks the two still match. -->
+    <None Include="../protocol/frames.json" Link="frames.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

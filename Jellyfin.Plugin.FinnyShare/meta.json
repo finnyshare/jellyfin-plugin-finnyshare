@@ -1,0 +1,13 @@
+{
+  "guid": "8b7a2f1e-3c4d-4a5b-9e6f-1d2c3b4a5e6f",
+  "name": "FinnyShare",
+  "overview": "Remote access for Jellyfin behind CGNAT - no port forwarding, no static IP",
+  "description": "Get a public HTTPS address for this server, even behind CGNAT or a router you cannot configure. The plugin keeps one outbound tunnel to a FinnyShare relay and proxies remote requests to Jellyfin; your logins and permissions are unchanged. BETA: capped at 10 Mbps per server (shared by all remote viewers, unlimited viewers), single relay, no uptime guarantee.",
+  "imageUrl": "https://finnyshare.space/logo.svg",
+  "owner": "finnyshare",
+  "category": "General",
+  "version": "0.1.0.0",
+  "targetAbi": "10.11.0.0",
+  "status": "Active",
+  "autoUpdate": false
+}

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>FinnyShare</title>
+</head>
+<body>
+<div id="FinnyShareConfigPage" data-role="page" class="page type-interior pluginConfigurationPage">
+  <div data-role="content">
+    <style>
+      /* Scoped to this settings page. The buttons previously mixed content-width and
+         full-width (one carried Jellyfin's "block" class), which read as a pile rather
+         than a panel. Everything here is one shape at one size. */
+      .fsPanel{max-width:44em;padding:1.5em 0}
+      .fsLabel{margin:0 0 .6em;opacity:.6;font-size:.9em}
+      .fsLabelGap{margin-top:2em}
+      .fsNote{margin:.9em 0 0;opacity:.6;font-size:.9em;line-height:1.5}
+      .fsWarn{opacity:.85}
+
+      /* The address is the thing people came for: give it a field of its own with the
+         copy action attached, rather than a button floating underneath. */
+      .fsPlate{display:flex;align-items:stretch;gap:.75em;flex-wrap:wrap}
+      .fsPlate code{flex:1 1 18em;min-width:0;display:flex;align-items:center;
+        padding:.65em .9em;border-radius:.3em;font-size:1.05em;
+        background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+        overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+      .fsPlate code::-webkit-scrollbar{display:none}
+
+      .fsRow{display:flex;gap:.75em;flex-wrap:wrap}
+      .fsRow>.fsBtn{flex:1 1 0;min-width:11rem}
+      .fsRowStart>.fsBtn{flex:0 0 auto}
+
+      /* emby-button centres its own text; these keep the icon and label together and stop
+         the anchor and the buttons rendering at two different heights. */
+      /* border-box or the anchor's own padding sits outside its flex width, and the two
+         "change it" buttons end up different sizes for no visible reason. */
+      .fsBtn{display:inline-flex;align-items:center;justify-content:center;gap:.55em;
+        box-sizing:border-box;margin:0;min-height:2.9em;text-align:center;
+        font-size:.875rem;font-weight:500;line-height:1.2}
+      .fsBtn svg{width:1.15em;height:1.15em;flex:none}
+
+      /* "Choose my own address" is an anchor so it can open in a new tab, but only
+         <button is="emby-button"> gets Jellyfin's element upgrade. Give the anchor the same
+         surface explicitly, or it renders as bare text beside a real button. */
+      a.fsBtn{background:rgba(255,255,255,.09);color:inherit;border-radius:.24em;
+        text-decoration:none;font-weight:inherit;padding:0 1em}
+      a.fsBtn:hover{background:rgba(255,255,255,.15)}
+    </style>
+    <div class="content-primary">
+
+      <div id="fsLoading" style="padding:1.5em 0"><p>Setting up…</p></div>
+
+      <!-- Ready: the address is the product. Everything else is secondary. -->
+      <div id="fsReady" class="hide fsPanel">
+        <p class="fsLabel">Your server is reachable at</p>
+        <div class="fsPlate">
+          <code id="fsUrl"></code>
+          <button is="emby-button" type="button" id="fsCopy" class="raised button-submit fsBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            <span>Copy</span>
+          </button>
+        </div>
+        <p id="fsEnabledNote" class="fsNote">Paste it into any Jellyfin app, on any network.
+        Your Jellyfin logins are unchanged.</p>
+        <p id="fsDisabledNote" class="hide fsNote fsWarn">Sharing is off. The address will not
+        work until you turn it back on.</p>
+
+        <p class="fsLabel fsLabelGap">Change it</p>
+        <div class="fsRow">
+          <button is="emby-button" type="button" id="fsRandom" class="raised fsBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11A8 8 0 0 0 6.3 5.7L3 9"/><path d="M3 4v5h5"/><path d="M4 13a8 8 0 0 0 13.7 5.3L21 15"/><path d="M21 20v-5h-5"/></svg>
+            <span>Get a different address</span>
+          </button>
+          <a id="fsRename" class="raised emby-button fsBtn" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            <span>Choose my own address</span>
+          </a>
+        </div>
+
+        <p class="fsLabel fsLabelGap">Sharing</p>
+        <div class="fsRow fsRowStart">
+          <button is="emby-button" type="button" id="fsToggle" class="raised fsBtn">
+            <svg id="fsToggleIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><path d="M12 2v10"/></svg>
+            <span id="fsToggleText">Stop sharing</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="fsWaiting" class="hide" style="padding:1.5em 0">
+        <p>Connecting… this page updates on its own.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    (function () {
+      var pluginId = '8b7a2f1e-3c4d-4a5b-9e6f-1d2c3b4a5e6f';
+      var page = document.getElementById('FinnyShareConfigPage');
+      var timer = null;
+      var busy = false;
+
+      function show(id) {
+        ['fsLoading', 'fsReady', 'fsWaiting'].forEach(function (s) {
+          var el = document.getElementById(s);
+          if (el) { el.classList.toggle('hide', s !== id); }
+        });
+      }
+
+      function render(config) {
+        if (!config.Hostname) { show('fsWaiting'); return; }
+
+        var url = 'https://' + config.Hostname;
+        document.getElementById('fsUrl').textContent = url;
+        document.getElementById('fsRename').href = config.RenameUrl || '#';
+
+        document.getElementById('fsCopy').onclick = function () {
+          navigator.clipboard.writeText(url).then(function () {
+            if (window.Dashboard && Dashboard.alert) { Dashboard.alert('Address copied'); }
+          });
+        };
+
+        var off = !!config.Disabled;
+        document.getElementById('fsToggleText').textContent = off ? 'Start sharing' : 'Stop sharing';
+        document.getElementById('fsDisabledNote').classList.toggle('hide', !off);
+        document.getElementById('fsEnabledNote').classList.toggle('hide', off);
+
+        // The icon has to agree with the label, or the button says one thing and shows
+        // another: a power symbol beside "Start sharing" reads as "this will turn it off".
+        document.getElementById('fsToggleIcon').innerHTML = off
+          ? '<polygon points="6 3 20 12 6 21 6 3"></polygon>'
+          : '<path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><path d="M12 2v10"></path>';
+
+        show('fsReady');
+      }
+
+      // Both actions go through the plugin rather than the browser talking to the control
+      // plane directly: the credential lives in the plugin and should stay there.
+      function post(path, done) {
+        if (busy) { return; }
+        busy = true;
+        ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('FinnyShare/' + path) })
+          .then(function () { busy = false; refresh(); done && done(); },
+                function () { busy = false; Dashboard.alert('That did not work. Try again.'); });
+      }
+
+      document.getElementById('fsRandom').onclick = function () {
+        if (confirm('Get a different address?\n\nThe current one stops working straight away, '
+                  + 'so anyone using it will need the new one.')) {
+          post('NewAddress');
+        }
+      };
+
+      document.getElementById('fsToggle').onclick = function () {
+        post('ToggleSharing');
+      };
+
+      function refresh() {
+        if (typeof ApiClient === 'undefined') { return; }
+        ApiClient.getPluginConfiguration(pluginId).then(render, function () { show('fsWaiting'); });
+      }
+
+      function start() {
+        refresh();
+        if (!timer) { timer = setInterval(refresh, 3000); }
+      }
+
+      function stop() {
+        if (timer) { clearInterval(timer); timer = null; }
+      }
+
+      // Jellyfin may already have fired its show event by the time this inline script runs,
+      // so start immediately AND listen for later navigations back to this page.
+      page.addEventListener('viewshow', start);
+      page.addEventListener('pageshow', start);
+      page.addEventListener('viewhide', stop);
+      page.addEventListener('pagehide', stop);
+      start();
+    })();
+  </script>
+</div>
+</body>
+</html>

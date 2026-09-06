@@ -1,0 +1,56 @@
+{
+  "_comment": "Cross-language wire contract for the FinnyShare tunnel. Read by BOTH the Go relay and the C# plugin test suites. Frame layout: [type:1][streamId:4 big-endian][payload]. Bytes are hex. Changing any vector is a breaking protocol change on both sides.",
+  "frameTypes": {
+    "REQUEST": 1,
+    "RESPONSE": 2,
+    "DATA": 3,
+    "END": 4,
+    "WS_TEXT": 5,
+    "WS_BINARY": 6,
+    "RESET": 7
+  },
+  "vectors": [
+    {
+      "name": "data frame with payload",
+      "type": 3,
+      "streamId": 16909060,
+      "payloadUtf8": "hi",
+      "bytes": "03010203046869"
+    },
+    {
+      "name": "stream id zero",
+      "type": 3,
+      "streamId": 0,
+      "payloadUtf8": "",
+      "bytes": "0300000000"
+    },
+    {
+      "name": "end frame carries no payload",
+      "type": 4,
+      "streamId": 1,
+      "payloadUtf8": "",
+      "bytes": "0400000001"
+    },
+    {
+      "name": "reset frame carries no payload",
+      "type": 7,
+      "streamId": 255,
+      "payloadUtf8": "",
+      "bytes": "07000000ff"
+    },
+    {
+      "name": "max stream id is big-endian, not little",
+      "type": 3,
+      "streamId": 4294967295,
+      "payloadUtf8": "",
+      "bytes": "03ffffffff"
+    },
+    {
+      "name": "ws text frame",
+      "type": 5,
+      "streamId": 258,
+      "payloadUtf8": "{}",
+      "bytes": "05000001027b7d"
+    }
+  ]
+}
